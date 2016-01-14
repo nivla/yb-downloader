@@ -3,23 +3,49 @@ require "open-uri"
 require "net/http"
 require "cgi"
 
+class Youtube
+  attr_reader :video_url, :video_stream_url, :video_title, :video_info
 
-query_params = URI.parse(ARGV[0]).query
-video_id = CGI.parse(query_params)["v"][0]
+  BASE_YOUTUBE_INFO_URL = "http://www.youtube.com/get_video_info?video_id="
 
-youtube_url_info = "http://www.youtube.com/get_video_info?video_id=#{video_id}"
+  class << self
+    def fetch url
+      new(url).call
+    end
+  end
 
-uri =  URI(youtube_url_info)
-response = Net::HTTP.get(uri)
-info = CGI.parse(response)
+  def initialize(url)
+    @video_url = url
+  end
 
-video_title = info['title'].first
-video_data = CGI.parse(info["url_encoded_fmt_stream_map"].first)
+  def call
+    parse
+    download
+  end
 
-video_link = video_data['url'].first
+  private
 
-video_file = File.open("#{video_title}.mp4","w")
-bytes = open(video_link).read
-video_file.write(bytes)
-video_file.close
+  def parse
+    query_params = URI.parse(@video_url).query
+    video_id = CGI.parse(query_params)["v"][0]
 
+    uri =  URI("#{BASE_YOUTUBE_INFO_URL}#{video_id}")
+
+    response = Net::HTTP.get(uri)
+    @video_info = CGI.parse(response)
+  end
+
+  def fetch_title
+    @video_title = @video_info['title'].first.gsub /[\W]/, "-"
+  end
+
+  def download(path_to_download = "~/Videos/#{fetch_title}.mp4")
+    video_data = CGI.parse(@video_info["url_encoded_fmt_stream_map"].first)
+
+    @stream_video_url = video_data['url'].first
+
+    %x(curl -# "#{@stream_video_url}" -o #{path_to_download})
+  end
+end
+
+Youtube.fetch ARGV[0]
