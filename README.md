@@ -4,7 +4,7 @@ script for download youtuve videos
 
 ## Usage
 ```
-./yb-downloader "VIDEO_URL"
+./yb-downloader.rb "VIDEO_URL"
 ```
 
 ## Requirements

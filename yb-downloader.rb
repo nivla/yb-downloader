@@ -3,7 +3,7 @@ require "open-uri"
 require "net/http"
 require "cgi"
 
-class Youtube
+class YbDownloader
   attr_reader :video_url, :video_stream_url, :video_title, :video_info
 
   BASE_YOUTUBE_INFO_URL = "http://www.youtube.com/get_video_info?video_id="
@@ -48,4 +48,4 @@ class Youtube
   end
 end
 
-Youtube.fetch ARGV[0]
+YbDownloader.fetch ARGV[0]
