@@ -4,48 +4,53 @@ require "net/http"
 require "cgi"
 
 class YbDownloader
-  attr_reader :video_url, :video_stream_url, :video_title, :video_info
+  attr_reader :youtube_video_url
 
-  BASE_YOUTUBE_INFO_URL = "http://www.youtube.com/get_video_info?video_id="
+  YOUTUBE_VIDEO_INFO_URL = "http://www.youtube.com/get_video_info?video_id="
 
-  class << self
-    def fetch url
-      new(url).call
-    end
+  def self.download(youtube_video_url)
+    new(youtube_video_url).call
   end
 
-  def initialize(url)
-    @video_url = url
+  def initialize(youtube_video_url)
+    @youtube_video_url = youtube_video_url
   end
 
   def call
-    parse
     download
   end
 
   private
 
-  def parse
-    query_params = URI.parse(@video_url).query
-    video_id = CGI.parse(query_params)["v"][0]
-
-    uri =  URI("#{BASE_YOUTUBE_INFO_URL}#{video_id}")
-
-    response = Net::HTTP.get(uri)
-    @video_info = CGI.parse(response)
+  def download(path_to_download = "~/Videos/#{youtube_video_title}.mp4")
+    %x(curl -# "#{youtube_downloable_video_url}" -o #{path_to_download})
   end
 
-  def fetch_title
-    @video_title = @video_info['title'].first.gsub /[\W]/, "-"
+  def youtube_video_title
+    youtube_video_info['title'].first.gsub /[\W]/, "-"
   end
 
-  def download(path_to_download = "~/Videos/#{fetch_title}.mp4")
-    video_data = CGI.parse(@video_info["url_encoded_fmt_stream_map"].first)
+  def youtube_downloable_video_url
+    stream_map['url'].first
+  end
 
-    @stream_video_url = video_data['url'].first
+  def stream_map
+    CGI.parse(youtube_video_info["url_encoded_fmt_stream_map"].first)
+  end
 
-    %x(curl -# "#{@stream_video_url}" -o #{path_to_download})
+  def youtube_video_info
+    uri =  URI("#{YOUTUBE_VIDEO_INFO_URL}#{youtube_video_id}")
+    youtube_video_info_params = Net::HTTP.get(uri)
+    @video_info ||= CGI.parse(youtube_video_info_params)
+  end
+
+  def youtube_video_id
+    CGI.parse(query_params)["v"].first
+  end
+
+  def query_params
+    URI.parse(youtube_video_url).query
   end
 end
 
-YbDownloader.fetch ARGV[0]
+YbDownloader.download ARGV[0]
